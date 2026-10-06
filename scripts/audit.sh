@@ -28,5 +28,12 @@ check "Входящий трафик по умолчанию запрещён" "
 echo "[3] Учётные записи"
 awk -F: '$3>=1000 && $3<65534 {printf "    %s (uid=%s)\n",$1,$3}' /etc/passwd
 
+echo "[4] Веб-сервер"
+CERT_DAYS="${CERT_DAYS:-30}"
+check "Служба nginx активна"                  "active" "$(systemctl is-active nginx)"
+check "Конфигурация nginx корректна"          "ok"     "$(sudo nginx -t >/dev/null 2>&1 && echo ok || echo error)"
+check "Сертификат действует ещё ${CERT_DAYS} дней" "ok" "$(openssl x509 -checkend $((CERT_DAYS * 86400)) -noout -in /etc/ssl/certs/devops.crt >/dev/null && echo ok || echo expires)"
+check "Нет файлов с записью для всех, ключ 600" "0 600" "$(find /var/www/devops-site -perm -o+w | wc -l) $(sudo stat -c '%a' /etc/ssl/private/devops.key)"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1

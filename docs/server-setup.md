@@ -78,5 +78,32 @@ DNS-серверы `8.8.8.8` и `1.1.1.1` заданы в `/etc/systemd/resolved
 | Снимок | Момент создания |
 |---|---|
 | `01-clean-install` | 29.09.2026 20:37, после установки ОС и обновления пакетов |
-| `02-keys-configured` | 29.09.2026, после настройки входа по ключу (задание 1) |
-| `03-ssh-hardened` | 29.09.2026, после усиления защиты SSH (задание 2) |
+| `03-ssh-hardened` | 29.09.2026, после настройки входа по ключу и усиления защиты SSH |
+| `04-nginx-https` | 06.10.2026, после установки nginx, перевода ресурса на HTTPS и первого деплоя (ПР № 6) |
+
+## 8. Веб-сервер
+
+Пакет: nginx 1.24.0 из репозитория Ubuntu (sudo apt install -y nginx).
+
+| Параметр | Значение |
+|---|---|
+| Конфигурация ресурса | /etc/nginx/sites-available/devops-site, ссылка в /etc/nginx/sites-enabled/ |
+| Стандартный ресурс | ссылка /etc/nginx/sites-enabled/default удалена, конфигурация сохранена |
+| Каталог ресурса | /var/www/devops-site, владелец devops:devops |
+| Права ресурса | каталоги 755, файлы 644 (rsync --chmod=D755,F644) |
+| Сертификат | /etc/ssl/certs/devops.crt, root:root, права 644 |
+| Закрытый ключ | /etc/ssl/private/devops.key, root:root, права 600 |
+| Протоколы TLS | TLSv1.2, TLSv1.3 |
+| Перенаправление | HTTP (80) на HTTPS (443), код 301 |
+| Журналы | /var/log/nginx/devops-site.access.log, /var/log/nginx/devops-site.error.log |
+
+Команда формирования сертификата:
+
+    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout /etc/ssl/private/devops.key \
+      -out /etc/ssl/certs/devops.crt \
+      -subj "/CN=devops.local" \
+      -addext "subjectAltName=DNS:devops.local"
+
+Срок действия: 365 дней, с 06.10.2026 по 06.10.2027.
+На хостовой системе сертификат сохранён в ~/devops.crt и передаётся curl параметром --cacert.
