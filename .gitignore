@@ -1,3 +1,4 @@
 *.pages
 *.pdf
 *.docx
+.env

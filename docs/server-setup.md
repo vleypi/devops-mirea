@@ -108,3 +108,19 @@ DNS-серверы `8.8.8.8` и `1.1.1.1` заданы в `/etc/systemd/resolved
 
 Срок действия: 365 дней, с 06.10.2026 по 06.10.2027.
 На хостовой системе сертификат сохранён в ~/devops.crt и передаётся curl параметром --cacert.
+
+## 9. Контейнеризация
+
+Docker Engine 29.9.2 установлен из официального репозитория download.docker.com (пакеты docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin), пакет docker.io не используется. Плагин Docker Compose v5.6.1.
+
+| Параметр | Значение |
+|---|---|
+| Участники группы `docker` | `devops` (имеет право `sudo`) |
+| Проект на сервере | `/home/devops/app`, доставляется командой `rsync -avz --delete --exclude=.env app/ devops:app/` |
+| Файл `.env` | `/home/devops/app/.env`, владелец `devops`, права `600`, пароль СУБД сформирован `openssl rand -hex 16`; шаблон `app/.env.example` |
+| Сервис `db` | `postgres:16-alpine`, проверка `pg_isready`, порт 5432 не публикуется |
+| Сервис `app` | образ `devops-app:1.0` на базе `python:3.12-slim`, gunicorn, пользователь `app` (uid 999) |
+| Публикуемые порты | `127.0.0.1:5000` → `5000` контейнера `app` |
+| Сеть | `app_backend` (bridge), СУБД доступна приложению по имени `db` |
+| Именованный том | `app_db_data` → `/var/lib/postgresql/data` |
+| Обратный прокси | в HTTPS-блоке `/etc/nginx/sites-available/devops-site` расположение `location /app/` с `proxy_pass http://127.0.0.1:5000/` и заголовками `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`; копия конфигурации до изменения `devops-site.bak-pr6` |

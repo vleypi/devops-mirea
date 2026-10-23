@@ -35,5 +35,11 @@ check "Конфигурация nginx корректна"          "ok"     "$(s
 check "Сертификат действует ещё ${CERT_DAYS} дней" "ok" "$(openssl x509 -checkend $((CERT_DAYS * 86400)) -noout -in /etc/ssl/certs/devops.crt >/dev/null && echo ok || echo expires)"
 check "Нет файлов с записью для всех, ключ 600" "0 600" "$(find /var/www/devops-site -perm -o+w | wc -l) $(sudo stat -c '%a' /etc/ssl/private/devops.key)"
 
+echo "[5] Контейнеризация"
+check "Служба docker активна"                  "active"  "$(systemctl is-active docker)"
+check "СУБД в состоянии healthy"               "healthy" "$(docker inspect -f '{{.State.Health.Status}}' app-db-1 2>/dev/null)"
+check "Порты 5000 и 5432 только на 127.0.0.1"  "0"       "$(ss -tln | awk '{print $4}' | grep -E ':(5000|5432)$' | grep -vc '^127\.0\.0\.1:')"
+check "Права файла ~/app/.env равны 600"       "600"     "$(stat -c '%a' ~/app/.env 2>/dev/null)"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
